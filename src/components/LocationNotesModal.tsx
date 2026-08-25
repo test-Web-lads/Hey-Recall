@@ -234,10 +234,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
               e.preventDefault();
               e.stopPropagation();
               setSwipeOffset(0);
-              return;
             }
-            // Tap directly opens edit modal
-            setIsEditModalOpen(true);
           }}
           style={{
             transform: `translateX(${swipeOffset}px)`,
@@ -245,7 +242,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
             touchAction: 'pan-y',
           }}
           className={
-            'relative z-10 p-3.5 sm:p-4 rounded-2xl border shadow-xs transition-all select-none cursor-pointer flex items-center justify-between gap-3 ' +
+            'relative z-10 p-3.5 sm:p-4 rounded-2xl border shadow-xs transition-all select-none flex items-center justify-between gap-3 ' +
             (isDark
               ? 'bg-[#111b21] border-[#2a3942] hover:border-amber-500/40 text-[#e9edef]'
               : 'bg-white border-slate-200 hover:border-amber-500/40 text-slate-900 shadow-xs')
