@@ -19,15 +19,23 @@ export const DraggableVoiceButton: React.FC<DraggableVoiceButtonProps> = ({
   theme,
 }) => {
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 700;
     try {
       const saved = localStorage.getItem('recallme_mic_pos');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const isRight = parsed.x > screenWidth / 2;
+        const maxY = Math.max(60, isRight ? screenHeight - 185 : screenHeight - 130);
+        return {
+          x: Math.min(Math.max(10, parsed.x), Math.max(10, screenWidth - 66)),
+          y: Math.min(Math.max(60, parsed.y), maxY),
+        };
       }
     } catch (e) {}
     return {
-      x: typeof window !== 'undefined' ? Math.max(16, window.innerWidth - 72) : 320,
-      y: typeof window !== 'undefined' ? Math.max(80, window.innerHeight - 150) : 500,
+      x: Math.max(16, screenWidth - 66),
+      y: Math.max(80, screenHeight - 200),
     };
   });
 
@@ -41,10 +49,14 @@ export const DraggableVoiceButton: React.FC<DraggableVoiceButtonProps> = ({
   const hasMovedRef = useRef(false);
 
   const clampPosition = (x: number, y: number) => {
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 700;
     const minX = 10;
-    const maxX = Math.max(minX, (typeof window !== 'undefined' ? window.innerWidth : 400) - 66);
+    const maxX = Math.max(minX, screenWidth - 66);
     const minY = 60; // below header
-    const maxY = Math.max(minY, (typeof window !== 'undefined' ? window.innerHeight : 700) - 130); // above bottom bar
+    // Keep guaranteed clearance above the '+' floating action button (bottom-[52px]) on the right side
+    const isRightHalf = x > screenWidth / 2;
+    const maxY = Math.max(minY, isRightHalf ? screenHeight - 185 : screenHeight - 130);
 
     return {
       x: Math.min(Math.max(minX, x), maxX),
@@ -93,10 +105,11 @@ export const DraggableVoiceButton: React.FC<DraggableVoiceButtonProps> = ({
         (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
       } catch (err) {}
 
-      // Snap cleanly to nearest side edge on release
+      // Snap cleanly to nearest side edge on release with safe buffer above '+' button
       setPosition((prev) => {
         const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
-        const snapX = prev.x < screenWidth / 2 ? 12 : Math.max(12, screenWidth - 66);
+        const isLeft = prev.x < screenWidth / 2;
+        const snapX = isLeft ? 12 : Math.max(12, screenWidth - 66);
         const finalPos = clampPosition(snapX, prev.y);
         try {
           localStorage.setItem('recallme_mic_pos', JSON.stringify(finalPos));
@@ -122,8 +135,8 @@ export const DraggableVoiceButton: React.FC<DraggableVoiceButtonProps> = ({
         <div
           className="fixed z-50 pointer-events-none select-none transition-all animate-in fade-in zoom-in-95 duration-150"
           style={{
-            left: Math.max(16, Math.min(window.innerWidth - 290, position.x - 115)),
-            top: position.y > 150 ? position.y - 80 : position.y + 64,
+            left: Math.max(16, Math.min((typeof window !== 'undefined' ? window.innerWidth : 400) - 290, position.x - 115)),
+            top: position.y > 175 ? position.y - 85 : position.y + 68,
             width: 270,
           }}
         >
