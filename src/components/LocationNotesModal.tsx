@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReminderItem } from '../types/reminder';
-import { X, Bookmark, StickyNote, Trash2, Edit3, Check, AlertTriangle, Calendar } from 'lucide-react';
-import { format, parseISO, addDays } from 'date-fns';
+import { X, Bookmark, StickyNote, Trash2, Edit3, Check, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
 import { ChimeService } from '../services/chimeService';
 
 interface LocationNotesModalProps {
@@ -29,10 +29,6 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [editTask, setEditTask] = useState(item.task);
   const [editNotes, setEditNotes] = useState(item.notes || '');
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'));
-  const [selectedHour, setSelectedHour] = useState<number>(12);
-  const [selectedMinute, setSelectedMinute] = useState<number>(0);
-  const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>('PM');
   const [editError, setEditError] = useState<string | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -42,66 +38,11 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
   const hasSwiped = useRef(false);
   const isDeletedRef = useRef(false);
 
-  const hoursList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const minutesList = Array.from({ length: 60 }, (_, i) => i);
-
-  const getFormattedDateDisplay = (dateString: string) => {
-    if (!dateString) return '';
-    const parts = dateString.split('-').map(Number);
-    if (parts.length !== 3 || isNaN(parts[0])) return dateString;
-
-    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-    const today = new Date();
-    const isToday =
-      dateObj.getFullYear() === today.getFullYear() &&
-      dateObj.getMonth() === today.getMonth() &&
-      dateObj.getDate() === today.getDate();
-
-    const tomorrow = addDays(today, 1);
-    const isTomorrow =
-      dateObj.getFullYear() === tomorrow.getFullYear() &&
-      dateObj.getMonth() === tomorrow.getMonth() &&
-      dateObj.getDate() === tomorrow.getDate();
-
-    const baseFormat = format(dateObj, 'EEEE d, yyyy');
-    if (isToday) return `Today ${baseFormat}`;
-    if (isTomorrow) return `Tomorrow ${baseFormat}`;
-    return baseFormat;
-  };
-
   useEffect(() => {
     if (isEditModalOpen) {
       setEditTask(item.task);
       setEditNotes(item.notes || '');
       setEditError(null);
-
-      try {
-        const itemDate = item.primaryTime ? parseISO(item.primaryTime) : null;
-        const now = new Date();
-
-        if (itemDate && !isNaN(itemDate.getTime()) && itemDate.getTime() > now.getTime()) {
-          setSelectedDateStr(format(itemDate, 'yyyy-MM-dd'));
-          const h24 = itemDate.getHours();
-          setSelectedHour(h24 % 12 || 12);
-          setSelectedMinute(itemDate.getMinutes());
-          setSelectedPeriod(h24 >= 12 ? 'PM' : 'AM');
-        } else {
-          // Default to +30 min in future rounded to nearest 5 mins
-          const futureDate = new Date(now.getTime() + 30 * 60000);
-          const roundedMinutes = Math.ceil(futureDate.getMinutes() / 5) * 5;
-          futureDate.setMinutes(roundedMinutes, 0, 0);
-          setSelectedDateStr(format(futureDate, 'yyyy-MM-dd'));
-          const h24 = futureDate.getHours();
-          setSelectedHour(h24 % 12 || 12);
-          setSelectedMinute(futureDate.getMinutes());
-          setSelectedPeriod(h24 >= 12 ? 'PM' : 'AM');
-        }
-      } catch {
-        setSelectedDateStr(format(new Date(), 'yyyy-MM-dd'));
-        setSelectedHour(12);
-        setSelectedMinute(0);
-        setSelectedPeriod('PM');
-      }
     }
   }, [isEditModalOpen, item]);
 
@@ -197,52 +138,15 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
       return;
     }
 
-    const now = new Date();
-    let hour24 = selectedHour % 12;
-    if (selectedPeriod === 'PM') hour24 += 12;
-
-    const parts = selectedDateStr.split('-').map(Number);
-    let targetYear = now.getFullYear();
-    let targetMonth = now.getMonth();
-    let targetDate = now.getDate();
-
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      targetYear = parts[0];
-      targetMonth = parts[1] - 1;
-      targetDate = parts[2];
-    }
-
-    const chosenDate = new Date(
-      targetYear,
-      targetMonth,
-      targetDate,
-      hour24,
-      selectedMinute,
-      0,
-      0
-    );
-
-    // Auto advance to tomorrow if today's chosen time already passed
-    const isToday =
-      targetYear === now.getFullYear() &&
-      targetMonth === now.getMonth() &&
-      targetDate === now.getDate();
-
-    if (isToday && chosenDate.getTime() <= now.getTime()) {
-      chosenDate.setDate(chosenDate.getDate() + 1);
-    }
-
     onUpdateReminder(item.id, {
       task: cleanTitle,
       notes: editNotes.trim() || undefined,
-      primaryTime: chosenDate.toISOString(),
-      status: 'pending',
       activityLog: [
         ...(item.activityLog || []),
         {
           timestamp: new Date().toISOString(),
           action: 'edited',
-          description: `Updated task and set date/time to ${format(chosenDate, 'MMM d, yyyy h:mm a')}`,
+          description: 'Updated note details',
         },
       ],
     });
@@ -279,7 +183,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                 setIsEditModalOpen(true);
               }}
               className="w-[65px] bg-[#16697A] hover:bg-[#1a7d91] text-white flex items-center justify-center transition-colors cursor-pointer"
-              title="Edit Task"
+              title="Edit Note"
             >
               <Edit3 className="w-5 h-5 stroke-[2.5px]" />
             </button>
@@ -360,18 +264,6 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
               Saved on {format(new Date(item.createdAt), 'MMM d, yyyy • h:mm a')}
             </span>
           </div>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditModalOpen(true);
-            }}
-            className="p-2 rounded-xl text-slate-400 hover:text-[#16697A] dark:hover:text-[#489fb5] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer flex-shrink-0"
-            title="Edit"
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -431,7 +323,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
           document.body
         )}
 
-      {/* Edit Quick Info Modal matching regular task edit modal layout */}
+      {/* Edit Quick Info Modal with only Text and Description */}
       {isEditModalOpen &&
         typeof document !== 'undefined' &&
         createPortal(
@@ -452,7 +344,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
               {/* Top Header Row */}
               <div className={'flex items-center justify-between px-5 pt-3.5 pb-2.5 border-b ' + (isDark ? 'border-[#2a3942]' : 'border-slate-100')}>
                 <h3 className="text-sm font-extrabold text-[#16697A] dark:text-[#489fb5]">
-                  Edit Task
+                  Edit Quick Info Note
                 </h3>
                 <button
                   type="button"
@@ -474,10 +366,13 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
               </div>
 
               {/* Form */}
-              <form noValidate onSubmit={handleSaveModalEdit} className="p-5 pt-3 space-y-3">
-                {/* Title Field with Character Counter */}
+              <form noValidate onSubmit={handleSaveModalEdit} className="p-5 pt-3 space-y-3.5">
+                {/* Title / Text Field */}
                 <div>
-                  <div className="flex items-center justify-end mb-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={'text-xs font-bold ' + (isDark ? 'text-[#8696a0]' : 'text-slate-600')}>
+                      Note Title / Text
+                    </label>
                     <span className={'text-[11px] font-medium ' + (editTask.length >= 40 ? 'text-amber-500 font-bold' : isDark ? 'text-[#8696a0]' : 'text-slate-400')}>
                       {editTask.length}/40
                     </span>
@@ -493,7 +388,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                       if (editError) setEditError(null);
                     }}
                     className={
-                      'w-full px-3.5 py-2 rounded-2xl border text-xs sm:text-sm outline-none transition-all ' +
+                      'w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm outline-none transition-all ' +
                       (editError
                         ? 'border-rose-500 ring-2 ring-rose-500/30'
                         : isDark
@@ -503,17 +398,20 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                   />
                 </div>
 
-                {/* Description / Notes Field with Character Counter */}
+                {/* Description / Notes Field */}
                 <div>
-                  <div className="flex items-center justify-end mb-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={'text-xs font-bold ' + (isDark ? 'text-[#8696a0]' : 'text-slate-600')}>
+                      Description (Optional)
+                    </label>
                     <span className={'text-[11px] font-medium ' + (editNotes.length >= 500 ? 'text-amber-500 font-bold' : isDark ? 'text-[#8696a0]' : 'text-slate-400')}>
                       {editNotes.length}/500
                     </span>
                   </div>
                   <textarea
-                    rows={3}
+                    rows={4}
                     maxLength={500}
-                    placeholder="Additional details / notes..."
+                    placeholder="Additional details / description..."
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
                     className={
@@ -523,101 +421,6 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                         : 'bg-white border-slate-200 text-slate-900 focus:border-[#16697A]')
                     }
                   />
-                </div>
-
-                {/* Date Picker (Clickable to change up to 9999/12/31) */}
-                <div className="relative">
-                  <div
-                    className={'w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between transition-all ' + (
-                      isDark
-                        ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef]'
-                        : 'bg-slate-50 border-slate-200 text-slate-900'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-[#16697A] dark:text-[#489fb5]" />
-                      <span>{getFormattedDateDisplay(selectedDateStr)}</span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-400">📅 Tap to change date</span>
-                  </div>
-
-                  {/* Native Calendar Picker Overlay */}
-                  <input
-                    type="date"
-                    min={format(new Date(), 'yyyy-MM-dd')}
-                    max="9999-12-31"
-                    value={selectedDateStr}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setSelectedDateStr(e.target.value);
-                        if (editError) setEditError(null);
-                      }
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                </div>
-
-                {/* Time Picker */}
-                <div className="grid grid-cols-7 gap-2 items-center">
-                  {/* Hour (01-12) */}
-                  <div className="col-span-3">
-                    <select
-                      value={selectedHour}
-                      onChange={(e) => {
-                        setSelectedHour(Number(e.target.value));
-                        if (editError) setEditError(null);
-                      }}
-                      className={
-                        'w-full px-3 py-2 rounded-2xl border text-xs sm:text-sm font-bold outline-none text-center ' +
-                        (isDark ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef]' : 'bg-slate-50 border-slate-200 text-slate-900')
-                      }
-                    >
-                      {hoursList.map((h) => (
-                        <option key={h} value={h}>
-                          {h < 10 ? '0' + h : h}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Minute (00-59) */}
-                  <div className="col-span-2">
-                    <select
-                      value={selectedMinute}
-                      onChange={(e) => {
-                        setSelectedMinute(Number(e.target.value));
-                        if (editError) setEditError(null);
-                      }}
-                      className={
-                        'w-full px-2 py-2 rounded-2xl border text-xs sm:text-sm font-bold outline-none text-center ' +
-                        (isDark ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef]' : 'bg-slate-50 border-slate-200 text-slate-900')
-                      }
-                    >
-                      {minutesList.map((m) => (
-                        <option key={m} value={m}>
-                          {m < 10 ? '0' + m : m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Period AM/PM */}
-                  <div className="col-span-2">
-                    <select
-                      value={selectedPeriod}
-                      onChange={(e) => {
-                        setSelectedPeriod(e.target.value as 'AM' | 'PM');
-                        if (editError) setEditError(null);
-                      }}
-                      className={
-                        'w-full px-2 py-2 rounded-2xl border text-xs sm:text-sm font-extrabold outline-none text-center ' +
-                        (isDark ? 'bg-[#111b21] border-[#2a3942] text-[#16697A] dark:text-[#489fb5]' : 'bg-slate-50 border-slate-200 text-[#16697A]')
-                      }
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
                 </div>
 
                 {editError && (
@@ -646,7 +449,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                     className="px-5 py-2.5 rounded-2xl bg-[#16697A] hover:bg-[#1a7d91] active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Check className="w-4 h-4 stroke-[3px]" />
-                    <span>Save Changes</span>
+                    <span>Save Note</span>
                   </button>
                 </div>
               </form>
