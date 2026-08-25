@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReminderItem } from '../types/reminder';
-import { X, Bookmark, StickyNote, Trash2, Edit3, Check, AlertTriangle } from 'lucide-react';
+import { X, Bookmark, StickyNote, Trash2, Edit3, AlertTriangle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ChimeService } from '../services/chimeService';
 
@@ -27,9 +27,8 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
   const [isSwiping, setIsSwiping] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [editTask, setEditTask] = useState(item.task);
-  const [editNotes, setEditNotes] = useState(item.notes || '');
-  const [editError, setEditError] = useState<string | null>(null);
+  const [editText, setEditText] = useState(item.task);
+  const [editError, setEditError] = useState(false);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef(0);
@@ -40,9 +39,8 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
 
   useEffect(() => {
     if (isEditModalOpen) {
-      setEditTask(item.task);
-      setEditNotes(item.notes || '');
-      setEditError(null);
+      setEditText(item.task);
+      setEditError(false);
     }
   }, [isEditModalOpen, item]);
 
@@ -131,22 +129,22 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
       e.stopPropagation();
     }
 
-    const cleanTitle = editTask.trim();
-    if (!cleanTitle) {
-      setEditError('Please enter a note title.');
+    const cleanText = editText.trim();
+    if (!cleanText) {
+      setEditError(true);
       ChimeService.triggerHapticError();
       return;
     }
 
     onUpdateReminder(item.id, {
-      task: cleanTitle,
-      notes: editNotes.trim() || undefined,
+      task: cleanText,
+      notes: undefined,
       activityLog: [
         ...(item.activityLog || []),
         {
           timestamp: new Date().toISOString(),
           action: 'edited',
-          description: 'Updated note details',
+          description: 'Updated quick info note',
         },
       ],
     });
@@ -320,7 +318,7 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
           document.body
         )}
 
-      {/* Edit Quick Info Modal with only Text and Description */}
+      {/* Edit Quick Info Modal matching first-time add window in QuickInfoModal */}
       {isEditModalOpen &&
         typeof document !== 'undefined' &&
         createPortal(
@@ -334,15 +332,27 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
             <div
               onClick={(e) => e.stopPropagation()}
               className={
-                'w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-150 ' +
+                'w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 ' +
                 (isDark ? 'bg-[#202c33] border-[#2a3942] text-[#e9edef]' : 'bg-white border-slate-200 text-slate-900')
               }
             >
-              {/* Top Header Row */}
-              <div className={'flex items-center justify-between px-5 pt-3.5 pb-2.5 border-b ' + (isDark ? 'border-[#2a3942]' : 'border-slate-100')}>
-                <h3 className="text-sm font-extrabold text-[#16697A] dark:text-[#489fb5]">
-                  Edit Quick Info Note
-                </h3>
+              {/* Header */}
+              <div
+                className={
+                  'px-5 py-4 border-b flex items-center justify-between ' +
+                  (isDark ? 'border-[#2a3942] bg-[#111b21]' : 'border-slate-100 bg-slate-50')
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-xs">
+                    <Bookmark className="w-4 h-4 fill-current" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold">Edit Quick Info</h3>
+                    <p className="text-xs text-slate-500">Update text info without date or time</p>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -362,91 +372,49 @@ const QuickInfoRow: React.FC<QuickInfoRowProps> = ({ item, theme = 'black', onDe
                 </button>
               </div>
 
-              {/* Form */}
-              <form noValidate onSubmit={handleSaveModalEdit} className="p-5 pt-3 space-y-3.5">
-                {/* Title / Text Field */}
+              {/* Body Form - One field with Save Changes button */}
+              <form noValidate onSubmit={handleSaveModalEdit} className="p-5 space-y-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className={'text-xs font-bold ' + (isDark ? 'text-[#8696a0]' : 'text-slate-600')}>
-                      Note Title / Text
-                    </label>
-                    <span className={'text-[11px] font-medium ' + (editTask.length >= 40 ? 'text-amber-500 font-bold' : isDark ? 'text-[#8696a0]' : 'text-slate-400')}>
-                      {editTask.length}/40
-                    </span>
-                  </div>
-                  <input
-                    type="text"
+                  <textarea
                     autoFocus
-                    maxLength={40}
-                    placeholder="e.g. Passport in drawer, locker code..."
-                    value={editTask}
+                    rows={5}
+                    placeholder="e.g. Car is parked in Lot B Spot 42, Locker code 1234, Flight AC872..."
+                    value={editText}
                     onChange={(e) => {
-                      setEditTask(e.target.value);
-                      if (editError) setEditError(null);
+                      setEditText(e.target.value);
+                      if (editError) setEditError(false);
                     }}
                     className={
-                      'w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm outline-none transition-all ' +
+                      'w-full px-4 py-3 rounded-2xl border text-sm outline-none transition-all ' +
                       (editError
                         ? 'border-rose-500 ring-2 ring-rose-500/30'
                         : isDark
-                        ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef] focus:border-[#16697A]'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-[#16697A]')
+                        ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef] focus:border-amber-400'
+                        : 'bg-white border-slate-200 text-slate-900 focus:border-amber-500')
                     }
                   />
+                  {editError && (
+                    <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>Please enter quick info text.</span>
+                    </p>
+                  )}
                 </div>
 
-                {/* Description / Notes Field */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className={'text-xs font-bold ' + (isDark ? 'text-[#8696a0]' : 'text-slate-600')}>
-                      Description (Optional)
-                    </label>
-                    <span className={'text-[11px] font-medium ' + (editNotes.length >= 500 ? 'text-amber-500 font-bold' : isDark ? 'text-[#8696a0]' : 'text-slate-400')}>
-                      {editNotes.length}/500
-                    </span>
-                  </div>
-                  <textarea
-                    rows={4}
-                    maxLength={500}
-                    placeholder="Additional details / description..."
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    className={
-                      'w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm outline-none ' +
-                      (isDark
-                        ? 'bg-[#111b21] border-[#2a3942] text-[#e9edef] focus:border-[#16697A]'
-                        : 'bg-white border-slate-200 text-slate-900 focus:border-[#16697A]')
-                    }
-                  />
-                </div>
-
-                {editError && (
-                  <p className="text-xs font-bold text-rose-500 pl-1 animate-in fade-in duration-150">
-                    ⚠️ {editError}
-                  </p>
-                )}
-
-                {/* Save and Cancel Action Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className={
-                      'px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ' +
-                      (isDark
-                        ? 'border-[#2a3942] text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-100')
-                    }
+                    className="px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-400 hover:text-slate-200 cursor-pointer"
                   >
                     Cancel
                   </button>
 
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-2xl bg-[#16697A] hover:bg-[#1a7d91] active:scale-95 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-6 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs sm:text-sm font-extrabold shadow-md active:scale-95 transition-all cursor-pointer"
                   >
-                    <Check className="w-4 h-4 stroke-[3px]" />
-                    <span>Save Note</span>
+                    Save Changes
                   </button>
                 </div>
               </form>
