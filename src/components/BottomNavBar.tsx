@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Home, Settings, Plus, CheckSquare, Bookmark } from 'lucide-react';
+import { Clock, Home, Settings, Plus, CheckSquare, Bookmark, Mic, MicOff, Loader2 } from 'lucide-react';
 
 interface BottomNavBarProps {
   currentView: 'home' | 'reminders' | 'search' | 'settings';
@@ -7,6 +7,12 @@ interface BottomNavBarProps {
   onOpenAddTask: () => void;
   onOpenQuickInfo: () => void;
   theme: 'off-white' | 'black';
+  isListening?: boolean;
+  speechStatus?: 'idle' | 'listening' | 'processing' | 'error';
+  audioVolume?: number;
+  liveTranscript?: string;
+  onToggleListening?: () => void;
+  showMic?: boolean;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
@@ -15,15 +21,88 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   onOpenAddTask,
   onOpenQuickInfo,
   theme,
+  isListening = false,
+  speechStatus = 'idle',
+  audioVolume = 0,
+  liveTranscript = '',
+  onToggleListening,
+  showMic = true,
 }) => {
   const isDark = theme === 'black';
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pb-safe select-none pointer-events-none">
-      {/* Floating Circular "+" Action Button Fixed Closely Above Menu Bar (Only on Home Screen) */}
+      {/* Floating Action Buttons Fixed Closely Above Menu Bar (Only on Home Screen) */}
       {currentView === 'home' && (
         <div className="max-w-md mx-auto relative px-4 pointer-events-auto">
+          {/* Left Side: Voice Microphone Button (Same height as '+' sign) */}
+          {showMic && (
+            <div className="absolute left-3.5 bottom-[52px] z-50">
+              {isListening && (
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-[#489fb5] animate-ping duration-1000 pointer-events-none"
+                  style={{ transform: `scale(${1.3 + (audioVolume || 0) * 0.4})` }}
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={onToggleListening}
+                className={
+                  'w-11 h-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all cursor-pointer border-2 ' +
+                  (isListening
+                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/40 animate-pulse'
+                    : isDark
+                    ? 'bg-[#16697A] hover:bg-[#1a7d91] text-white border-[#202c33] shadow-black/60'
+                    : 'bg-[#16697A] hover:bg-[#1a7d91] text-white border-white shadow-slate-400/50')
+                }
+                title={isListening ? 'Stop listening' : 'Tap to speak reminder'}
+                aria-label={isListening ? 'Stop listening' : 'Tap to speak reminder'}
+              >
+                {speechStatus === 'processing' ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                ) : isListening ? (
+                  <MicOff className="w-5 h-5 text-white" />
+                ) : (
+                  <Mic className="w-5 h-5 text-white stroke-[2.5px]" />
+                )}
+              </button>
+
+              {/* Live Speech Bubble above left Mic button */}
+              {isListening && (
+                <div className="absolute bottom-14 left-0 z-50 pointer-events-none select-none transition-all animate-in fade-in zoom-in-95 duration-150 w-64">
+                  <div
+                    className={
+                      'p-3 rounded-2xl shadow-xl border backdrop-blur-xl ' +
+                      (isDark
+                        ? 'bg-[#202c33]/95 border-[#2a3942] text-[#e9edef]'
+                        : 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-300/50')
+                    }
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-[#489fb5] animate-ping" />
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#16697A] dark:text-[#489fb5]">
+                        Listening
+                      </span>
+                    </div>
+                    <p
+                      className={
+                        'text-xs font-medium italic min-h-[1.5rem] rounded-xl p-2 border leading-relaxed break-words ' +
+                        (isDark
+                          ? 'bg-[#111b21]/70 border-[#2a3942] text-[#e9edef]'
+                          : 'bg-slate-50/70 border-slate-200 text-slate-800')
+                      }
+                    >
+                      {liveTranscript ? '"' + liveTranscript + '"' : 'Say your reminder...'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Right Side: Circular "+" Action Button */}
           <div className="absolute right-3.5 bottom-[52px] z-50">
             <button
               type="button"

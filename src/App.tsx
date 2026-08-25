@@ -12,7 +12,6 @@ import { RemindersPageView } from './components/RemindersPageView';
 import { SearchView } from './components/SearchView';
 import { SettingsView, type PhrasingTemplate, DEFAULT_PHRASING_LIST } from './components/SettingsView';
 import { BottomNavBar } from './components/BottomNavBar';
-import { DraggableVoiceButton } from './components/DraggableVoiceButton';
 import { AddReminderModal } from './components/AddReminderModal';
 import { QuickInfoModal } from './components/QuickInfoModal';
 import { MicPermissionModal } from './components/MicPermissionModal';
@@ -510,19 +509,7 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Microphone: ONLY shown if enabled in Settings */}
-      {showFloatingMic && (
-        <DraggableVoiceButton
-          isListening={isListening}
-          status={speechStatus}
-          audioVolume={audioVolume}
-          liveTranscript={liveTranscript}
-          onToggleListening={toggleListening}
-          theme={theme}
-        />
-      )}
-
-      {/* Fixed Bottom Navigation */}
+      {/* Fixed Bottom Navigation with Microphone on Left and '+' on Right (Home Screen Only) */}
       <BottomNavBar
         currentView={currentView}
         onSelectView={(tab) => {
@@ -532,6 +519,12 @@ export function App() {
         onOpenAddTask={() => setIsAddModalOpen(true)}
         onOpenQuickInfo={() => setIsQuickInfoModalOpen(true)}
         theme={theme}
+        isListening={isListening}
+        speechStatus={speechStatus}
+        audioVolume={audioVolume}
+        liveTranscript={liveTranscript}
+        onToggleListening={toggleListening}
+        showMic={showFloatingMic}
       />
 
       {/* Add Reminder Modal */}
