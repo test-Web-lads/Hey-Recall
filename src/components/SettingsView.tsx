@@ -40,8 +40,8 @@ interface SettingsViewProps {
   onSelectTheme: (theme: 'off-white' | 'black') => void;
   ttsEnabled: boolean;
   onToggleTTS: () => void;
-  wakeWordEnabled: boolean;
-  onToggleWakeWord: () => void;
+  wakeWordEnabled?: boolean;
+  onToggleWakeWord?: () => void;
   showFloatingMic: boolean;
   onToggleShowFloatingMic: () => void;
   onClearAllData: () => void;
@@ -326,8 +326,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSelectTheme,
   ttsEnabled,
   onToggleTTS,
-  wakeWordEnabled,
-  onToggleWakeWord,
+  wakeWordEnabled: _wakeWordEnabled,
+  onToggleWakeWord: _onToggleWakeWord,
   showFloatingMic,
   onToggleShowFloatingMic,
   onClearAllData,
@@ -1167,57 +1167,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )}
         </div>
 
-        {/* 7. Hey Recall (Wake Word) */}
-        <div>
-          <div
-            onClick={() => toggleSection('wakeword')}
-            className="p-4 sm:p-4.5 flex items-center justify-between cursor-pointer select-none"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl flex items-center justify-center bg-black/5 dark:bg-white/5 text-[#16697A] dark:text-[#489fb5]">
-                <Mic className="w-5 h-5 text-[#16697A] dark:text-[#489fb5]" />
-              </div>
-              <h3 className={'text-base sm:text-lg font-extrabold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
-                Hey Recall
-              </h3>
-            </div>
-
-            <div className="p-1 text-slate-400">
-              {activeSection === 'wakeword' ? (
-                <ChevronUp className="w-5 h-5" />
-              ) : (
-                <ChevronDown className="w-5 h-5" />
-              )}
-            </div>
-          </div>
-
-          {activeSection === 'wakeword' && (
-            <div className={'p-4 border-t space-y-4 animate-in fade-in duration-150 ' + (
-              isDark ? 'border-[#2a3942] bg-[#111b21]/40' : 'border-slate-100 bg-slate-50/50'
-            )}>
-              <p className="text-sm text-slate-400 font-medium">
-                Hands-free wake word listening
-              </p>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className={'text-sm sm:text-base font-bold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
-                    Wake Word Detection
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-500">Say "Hey Recall" to listen</p>
-                </div>
-
-                <PillToggle
-                  checked={wakeWordEnabled}
-                  onChange={onToggleWakeWord}
-                  isDark={isDark}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 8. Reset & Clear Data (Centered in middle with reset icon and no background box) */}
+        {/* 7. Reset & Clear Data (Centered in middle with reset icon and no background box) */}
         <div>
           <button
             type="button"
