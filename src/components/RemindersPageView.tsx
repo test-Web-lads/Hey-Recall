@@ -510,13 +510,9 @@ export const RemindersPageView: React.FC<RemindersPageViewProps> = ({
   }, [trashQuickInfo.length, isQuickInfoTrashEditMode]);
 
   return (
-    <div className="max-w-xl mx-auto space-y-2.5 animate-in fade-in duration-200">
-      {/* Sticky Header Bar */}
-      <div
-        className={'sticky top-0 z-30 -mt-3 -mx-4 px-4 pt-3 pb-2 transition-all ' + (
-          isDark ? 'bg-[#0b141a]/95 backdrop-blur-md' : 'bg-[#f0f2f5]/95 backdrop-blur-md'
-        )}
-      >
+    <div className="max-w-xl mx-auto space-y-3 animate-in fade-in duration-200">
+      {/* Reminders Header Bar */}
+      <div className="pt-0.5 pb-1">
         <div className="flex items-center justify-between">
           <div>
             <h2 className={'text-xl sm:text-2xl font-black tracking-tight ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
