@@ -14,6 +14,7 @@ import {
   User,
   Edit3,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import { ChimeService, RINGTONE_OPTIONS, type RingtoneId } from '../services/chimeService';
 
@@ -39,11 +40,12 @@ interface SettingsViewProps {
   onToggleTTS?: () => void;
   wakeWordEnabled?: boolean;
   onToggleWakeWord?: () => void;
-  showFloatingMic: boolean;
-  onToggleShowFloatingMic: () => void;
+  showFloatingMic?: boolean;
+  onToggleShowFloatingMic?: () => void;
   onClearAllData: () => void;
   phrasingList: PhrasingTemplate[];
   onUpdatePhrasingList: (list: PhrasingTemplate[]) => void;
+  onBack?: () => void;
 }
 
 // Exact Pill Toggle Switch Component matching user reference image
@@ -330,6 +332,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onClearAllData,
   phrasingList,
   onUpdatePhrasingList,
+  onBack,
 }) => {
   const isDark = theme === 'black';
 
@@ -443,21 +446,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     ChimeService.triggerVibration([50]);
   };
 
-  /*
-   * [HIDDEN FEATURE - CUSTOM SNOOZE DELAY]
-   * Uncomment below to re-enable custom snooze handler:
-   * const [customSnoozeInput, setCustomSnoozeInput] = useState('');
-   * const handleSetCustomSnooze = () => {
-   *   let parsed = parseInt(customSnoozeInput.trim(), 10);
-   *   if (!isNaN(parsed) && parsed > 0) {
-   *     parsed = Math.min(1440, parsed);
-   *     handleSelectSnoozeDelay(parsed);
-   *     setCustomSnoozeInput('');
-   *   }
-   * };
-   */
-
-
   const handleVolumeDrag = (newPercent: number) => {
     setVolumePercent(newPercent);
     const vol = newPercent / 100;
@@ -477,7 +465,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       ChimeService.stopAllAudio();
       ChimeService.triggerVibration([100]);
     } else {
-      // Play a crisp test ring upon release at the chosen volume
       ChimeService.previewRingtone(selectedRingtone, 2, vol);
     }
   };
@@ -485,7 +472,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleSelectRingtone = (id: RingtoneId) => {
     setSelectedRingtone(id);
     ChimeService.setRingtone(id);
-    // Rings with the selected melody at full test volume
     ChimeService.previewRingtone(id, 3, Math.max(0.3, volumePercent / 100));
   };
 
@@ -522,7 +508,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const displayedRingtones = showAllRingtones ? RINGTONE_OPTIONS : RINGTONE_OPTIONS.slice(0, 3);
 
   return (
-    <div className="max-w-xl mx-auto px-1 py-1 space-y-3.5 animate-in fade-in duration-200">
+    <div className="max-w-xl mx-auto px-1 py-1 space-y-3.5 pb-20 animate-in fade-in duration-200">
+      {/* Top Header Row with Back Button if onBack is provided */}
+      {onBack && (
+        <div className="flex items-center justify-between px-1 pt-1">
+          <button
+            type="button"
+            onClick={onBack}
+            className={'flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer ' + (
+              isDark
+                ? 'bg-[#202c33] border-[#2a3942] text-[#e9edef] hover:border-[#16697A]'
+                : 'bg-white border-slate-200 text-slate-800 hover:border-[#16697A] shadow-xs'
+            )}
+          >
+            <ArrowLeft className="w-4 h-4 text-[#16697A] dark:text-[#489fb5]" />
+            <span>Back to Home</span>
+          </button>
+          <span className={'text-xs sm:text-sm font-extrabold ' + (isDark ? 'text-[#8696a0]' : 'text-slate-500')}>
+            Settings
+          </span>
+        </div>
+      )}
+
       {/* 0. Sticky Profile Photo & Editable Name Card */}
       <div
         className={'sticky top-0 z-30 -mx-4 px-4 pt-2 pb-2.5 transition-all ' + (

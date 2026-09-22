@@ -459,6 +459,7 @@ export function App() {
             onSnooze={handleSnooze}
             onDelete={handleDelete}
             onUpdateReminder={handleUpdateReminder}
+            onOpenSettings={() => setCurrentView('settings')}
           />
         ) : currentView === 'reminders' ? (
           <RemindersPageView
@@ -505,6 +506,7 @@ export function App() {
             onClearAllData={handleClearAllData}
             phrasingList={phrasingList}
             onUpdatePhrasingList={handleUpdatePhrasingList}
+            onBack={() => setCurrentView('home')}
           />
         )}
       </main>
