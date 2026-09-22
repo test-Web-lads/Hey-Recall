@@ -3,7 +3,6 @@ import {
   Volume2,
   Volume1,
   VolumeX,
-  Mic,
   Moon,
   Trash2,
   ChevronDown,
@@ -16,9 +15,7 @@ import {
   Edit3,
   X,
 } from 'lucide-react';
-import { TTSService, ACCENT_OPTIONS, type AccentCode } from '../services/ttsService';
 import { ChimeService, RINGTONE_OPTIONS, type RingtoneId } from '../services/chimeService';
-import { SpeechService } from '../services/speechService';
 
 export interface PhrasingTemplate {
   id: string;
@@ -38,8 +35,8 @@ export const DEFAULT_PHRASING_LIST: PhrasingTemplate[] = [
 interface SettingsViewProps {
   theme: 'off-white' | 'black';
   onSelectTheme: (theme: 'off-white' | 'black') => void;
-  ttsEnabled: boolean;
-  onToggleTTS: () => void;
+  ttsEnabled?: boolean;
+  onToggleTTS?: () => void;
   wakeWordEnabled?: boolean;
   onToggleWakeWord?: () => void;
   showFloatingMic: boolean;
@@ -324,12 +321,12 @@ const SwipeableQuickTaskRow: React.FC<{
 export const SettingsView: React.FC<SettingsViewProps> = ({
   theme,
   onSelectTheme,
-  ttsEnabled,
-  onToggleTTS,
+  ttsEnabled: _ttsEnabled,
+  onToggleTTS: _onToggleTTS,
   wakeWordEnabled: _wakeWordEnabled,
   onToggleWakeWord: _onToggleWakeWord,
-  showFloatingMic,
-  onToggleShowFloatingMic,
+  showFloatingMic: _showFloatingMic,
+  onToggleShowFloatingMic: _onToggleShowFloatingMic,
   onClearAllData,
   phrasingList,
   onUpdatePhrasingList,
@@ -379,9 +376,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [volumePercent, setVolumePercent] = useState<number>(() => Math.round(ChimeService.getVolume() * 100));
   const [showAllRingtones, setShowAllRingtones] = useState(false);
 
-  const [selectedAccent, setSelectedAccent] = useState<AccentCode>(() => TTSService.getAccent());
-  const [micPermState, setMicPermState] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('prompt');
-
   // Quick Task Pop-up Modal State
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -390,10 +384,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [inputText, setInputText] = useState('');
 
   useEffect(() => {
-    SpeechService.getPermissionState().then((state) => {
-      setMicPermState(state);
-    });
-
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.getVoices();
     }
@@ -499,31 +489,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     ChimeService.previewRingtone(id, 3, Math.max(0.3, volumePercent / 100));
   };
 
-  const handleSelectAccent = (acc: AccentCode, phrase: string) => {
-    setSelectedAccent(acc);
-    TTSService.setAccent(acc);
-    TTSService.speak(phrase);
-  };
-
-  const handleToggleMicPermission = async () => {
-    ChimeService.triggerVibration([50]);
-    if (micPermState === 'granted') {
-      setMicPermState('denied');
-      ChimeService.stopAllAudio();
-      return;
-    }
-
-    const res = await SpeechService.requestPermission();
-    if (res.granted) {
-      setMicPermState('granted');
-      ChimeService.playConfirmationBeep();
-      TTSService.speak('Microphone access granted.');
-    } else {
-      setMicPermState('denied');
-      alert(res.error || 'Microphone access was denied in browser settings.');
-    }
-  };
-
   const handleOpenEditModal = (p: PhrasingTemplate) => {
     setModalMode('edit');
     setActivePhraseId(p.id);
@@ -555,7 +520,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const displayedRingtones = showAllRingtones ? RINGTONE_OPTIONS : RINGTONE_OPTIONS.slice(0, 3);
-  const isMicGranted = micPermState === 'granted';
 
   return (
     <div className="max-w-xl mx-auto px-1 py-1 space-y-3.5 animate-in fade-in duration-200">
@@ -956,7 +920,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )}
         </div>
 
-        {/* 4. Microphone */}
+        {/* 4. Microphone (Hidden for the time being) */}
+        {/*
         <div>
           <div
             onClick={() => toggleSection('micsettings')}
@@ -988,7 +953,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Manage on-screen mic visibility and device microphone permission
               </p>
 
-              {/* Toggle 1: On-screen Mic */}
               <div className="flex items-center justify-between gap-3 pt-1">
                 <div>
                   <h4 className={'text-sm sm:text-base font-bold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
@@ -1004,10 +968,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 />
               </div>
 
-              {/* Divider between mic toggles */}
               <div className={'pt-2 border-t ' + (isDark ? 'border-slate-700/40' : 'border-slate-200')} />
 
-              {/* Toggle 2: Microphone Permission Status */}
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h4 className={'text-sm sm:text-base font-bold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
@@ -1025,6 +987,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           )}
         </div>
+        */}
 
         {/* 5. Quick Task (Editable Phrasing Guide) */}
         <div>
@@ -1076,98 +1039,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           )}
         </div>
 
-        {/* 6. Voice */}
-        <div>
-          <div
-            onClick={() => toggleSection('voice')}
-            className="p-4 sm:p-4.5 flex items-center justify-between cursor-pointer select-none"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl flex items-center justify-center bg-black/5 dark:bg-white/5 text-[#16697A] dark:text-[#489fb5]">
-                <Volume2 className="w-5 h-5 text-[#16697A] dark:text-[#489fb5]" />
-              </div>
-              <h3 className={'text-base sm:text-lg font-extrabold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
-                Voice
-              </h3>
-            </div>
-
-            <div className="p-1 text-slate-400">
-              {activeSection === 'voice' ? (
-                <ChevronUp className="w-5 h-5" />
-              ) : (
-                <ChevronDown className="w-5 h-5" />
-              )}
-            </div>
-          </div>
-
-          {activeSection === 'voice' && (
-            <div className={'p-4 border-t space-y-3 animate-in fade-in duration-150 ' + (
-              isDark ? 'border-[#2a3942] bg-[#111b21]/40' : 'border-slate-100 bg-slate-50/50'
-            )}>
-              <p className="text-sm text-slate-400 font-medium">
-                Text-to-speech audio voice configuration
-              </p>
-
-              {/* Toggle: Voice Synthesis */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className={'text-sm sm:text-base font-bold ' + (isDark ? 'text-[#e9edef]' : 'text-slate-900')}>
-                    Voice Synthesis
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-500">Spoken audio feedback</p>
-                </div>
-
-                <PillToggle
-                  checked={ttsEnabled}
-                  onChange={onToggleTTS}
-                  isDark={isDark}
-                />
-              </div>
-
-              {ttsEnabled && (
-                <div className={'space-y-2.5 pt-2.5 border-t ' + (
-                  isDark ? 'border-slate-700/40' : 'border-slate-200'
-                )}>
-                  <div>
-                    <span className="text-xs sm:text-sm font-bold text-slate-400">Select Voice Accent</span>
-                  </div>
-
-                  {/* 4 Clean Accent Cards */}
-                  <div className="space-y-2">
-                    {ACCENT_OPTIONS.map((acc) => {
-                      const isSelected = selectedAccent === acc.id;
-                      return (
-                        <button
-                          key={acc.id}
-                          type="button"
-                          onClick={() => handleSelectAccent(acc.id, acc.samplePhrase)}
-                          className={'w-full px-3.5 py-2.5 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between transition-all cursor-pointer ' + (
-                            isSelected
-                              ? 'bg-[#16697A] border-[#16697A] text-white shadow-xs'
-                              : isDark
-                                ? 'bg-[#202c33] border-[#2a3942] text-[#8696a0] hover:text-[#e9edef]'
-                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                          )}
-                        >
-                          <div className="flex items-center gap-2.5 text-left min-w-0">
-                            <span className="text-base flex-shrink-0">{acc.flag}</span>
-                            <div className="min-w-0">
-                              <span className="block font-extrabold truncate">{acc.label}</span>
-                              <span className="block text-[11px] opacity-75 font-normal">{acc.subtitle}</span>
-                            </div>
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 stroke-[3px] flex-shrink-0 ml-2" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 7. Reset & Clear Data (Centered in middle with reset icon and no background box) */}
+        {/* 6. Reset & Clear Data (Centered in middle with reset icon and no background box) */}
         <div>
           <button
             type="button"

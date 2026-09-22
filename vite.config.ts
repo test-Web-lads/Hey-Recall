@@ -8,8 +8,7 @@ export default defineConfig({
   base: './',
   plugins: [
     react(),
-    tailwindcss(),
-    basicSsl(),
+    ...(process.env.VITEST ? [] : [tailwindcss(), basicSsl()]),
   ],
   server: {
     host: '0.0.0.0',
